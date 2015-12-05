@@ -3,6 +3,7 @@
 	<head>
 		<title>Pyth Compiler/Executor</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
 		<link rel="shortcut icon" href="/favicon2.ico">
@@ -59,6 +60,27 @@
 				max-height: 200px;
 				overflow: auto;
 			}
+			#code, #input, #output, #test-suite-input {
+				font-family: monospace;
+			}
+
+            #test-suite {
+                display: none;
+            }
+
+            #switcher {
+                color: gray;
+            }
+
+            #middle-row {
+                padding-bottom: 10px;
+            }
+
+			#loading {
+				margin-left: 15px;
+				font-size: 24pt;
+				display: none;
+			}
 		</style>
 	</head>
 	<body>
@@ -72,8 +94,25 @@
 						<pre class="scroll" id="output"></pre>
 					</div>
 					<button id="run-button" class="btn btn-primary">Run Program! (Ctrl-Enter)</button>
+					<i class="fa fa-spinner fa-spin" id="loading"></i>
 					<textarea id="code" placeholder="Code" class="form-control" rows="7">{{ code }}</textarea>
-					<textarea id="input" placeholder="Input" class="form-control" rows="7">{{ input }}</textarea>
+
+                    <div id="middle-row">
+                        <div id="input-size-cont" style="display: none;">
+                            Lines / Test:
+                            <input type="number" class="form-control" id="input-size" style="display: inline;width: 70px;" value="{{ input_size }}" min="1">
+                        </div>
+                        <a id="switcher" class="bottom-row" href="javascript: input_type = input_type ? 0 : 1; change_input_type()">Switch to Test Suite</a>
+                    </div>
+
+
+                    <div id="inputs">
+				        <textarea id="input" placeholder="Input" class="form-control" rows="7">{{ input }}</textarea>
+                        <div id="test-suite">
+                            <textarea id="test-suite-input" placeholder="Test Cases" class="form-control" rows="7">{{ test_suite_input }}</textarea>
+                        </div>
+                    </div>
+
 					<br>
 					<div class='bottom-row'>
 						Debug on?: <input id="debug" type="checkbox" {% if debug %} checked {% endif %}>
@@ -107,30 +146,62 @@
 			</div>
 		</div>
 		<script>
+            input_type = {{ test_suite }}
+			runs = 0
+
+            function change_input_type() {
+                $("#input").css("display", input_type ? "none" : "block")
+                $("#test-suite").css("display", input_type ? "block" : "none")
+                $("#input-size-cont").css("display", input_type ? "block" : "none")
+                $('#switcher').text(input_type ? "Switch to Regular Input" : "Switch to Test Suite")
+            }
+
 			function permalink() {
 				params={code: $('#code').val()}
 				if ($('#input').val()) params.input=$('#input').val()
+                if (input_type) params.test_suite = input_type
+                if ($('#test-suite-input').val()) params.test_suite_input=$('#test-suite-input').val()
 				if (!$('#debug').is(':checked')) params.debug=0
-				document.location="?"+$.param(params)
+				if ($('#debug').is(':checked')) params.debug=1
+                if ($("#input-size").val()!=1) params.input_size=$("#input-size").val()
+
+				history.pushState(null, null, "?" + $.param(params).replace(/[!'()*]/g, function(c) {return '%' + c.charCodeAt(0).toString(16)}))
 			}
 
 			function submit_code() {
-				$.post('/submit', {
-					code: $('#code').val(),
-					input: $('#input').val(),
-					debug: $('#debug').is(':checked')? 1 : 0
-					},
-					function(data) {
-						$('#output').text(data);
-						$('#output-container').show()
-				});
+                console.log(input_type)
+				$("#loading").show()
+				runs++
+
+                $.post(input_type ? '/submit_test_suite' : '/submit', {
+                    code: $('#code').val(),
+                    input: input_type ? $('#test-suite-input').val() : $('#input').val(),
+                    debug: $('#debug').is(':checked')? 1 : 0,
+                    input_size: $('#input-size').val()
+                    },
+                    function(data) {
+						runs--
+						if (! runs) $("#loading").hide()
+
+                        $('#output').text(($('#debug').is(':checked') & $('#input').val() ?
+							"===================== Input ======================\n" +
+							$('#input').val() + "\n" : "") + data);
+
+                        $('#output-container').show()
+                });
+
 			}
+
 			$(function() {
+				$("#loading").css("display", "inline")
+				$("#loading").hide()
 				$('#run-button').click(submit_code);
+
+                change_input_type()
 
 				$('#code').keyup(function(e) {
 					$('#length').text(e.target.value.length);
-				});
+				}).keyup();
 
 				var docs_cols = ['Char', 'Arity', 'Starts', 'Mnemonic', 'Details'];
 				var search_type;
@@ -206,16 +277,18 @@
 				}
 
 				window.addEventListener('resize', onresize);
-				$('#code').keydown(function (e) {
+
+                ctrl_enter_handler = function (e) {
    				     if (e.ctrlKey && (e.keyCode==10 || e.keyCode == 13)) {
-                                        submit_code(); 
+                                        submit_code();
 				     }
-				});
-				$('#input').keydown(function (e) {
-   				     if (e.ctrlKey && (e.keyCode==10 || e.keyCode == 13)) {
-                                        submit_code(); 
-				     }
-				});
+				}
+
+				$('#code').keydown(ctrl_enter_handler);
+				$('#input').keydown(ctrl_enter_handler);
+				$('#test-suite-input').keydown(ctrl_enter_handler);
+				$('#input-size').keydown(ctrl_enter_handler);
+
 				onresize();
 				$('#code').focus()
 			});

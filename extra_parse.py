@@ -2,6 +2,7 @@
 
 
 class PythParseError(Exception):
+
     def __init__(self, active_char, rest_code):
         self.active_char = active_char
         self.rest_code = rest_code
@@ -12,6 +13,7 @@ class PythParseError(Exception):
 
 
 class UnsafeInputError(Exception):
+
     def __init__(self, active_char, rest_code):
         self.active_char = active_char
         self.rest_code = rest_code
@@ -25,7 +27,7 @@ def num_parse(active_char, rest_code):
     output = active_char
     while len(rest_code) > 0 \
             and rest_code[0] in ".0123456789" \
-            and (output+rest_code[0]).count(".") <= 1:
+            and (output + rest_code[0]).count(".") <= 1:
         output += rest_code[0]
         rest_code = rest_code[1:]
     if output[-1] == "." and len(rest_code) > 0 and rest_code[0] not in ' \n':
@@ -50,6 +52,9 @@ def str_parse(active_char, rest_code):
         elif rest_code[0] == '\n':
             output += '\\n'
             rest_code = rest_code[1:]
+        elif rest_code[0] == '\0':
+            output += '\\0'
+            rest_code = rest_code[1:]
         else:
             output += rest_code[0]
             rest_code = rest_code[1:]
@@ -61,9 +66,9 @@ def str_parse(active_char, rest_code):
 
 
 def python_parse(active_char, rest_code):
-        output = ''
-        while (len(rest_code) > 0
-               and rest_code[0] != '$'):
-            output += rest_code[0]
-            rest_code = rest_code[1:]
-        return output, rest_code[1:]
+    output = ''
+    while (len(rest_code) > 0
+           and rest_code[0] != '$'):
+        output += rest_code[0]
+        rest_code = rest_code[1:]
+    return output, rest_code[1:]

@@ -1,6 +1,7 @@
-no_init_paren = ('f', 'm', 'o', 'u', '.e', '.m', '.M')
-end_statement = ('B', 'R', '.u')
-variables = 'bdGHkNTYZ'
+lambda_f = ('f', 'm', 'o', 'u', '.b', '.e', '.f', '.g', '.I',
+            '.m', '.M', '.u', '.U')
+end_statement = ('B', 'R', '.*')
+variables = 'bdGHkNQTYzZ'
 
 # Variables cheat sheet:
 # b = "\n"
@@ -17,51 +18,33 @@ variables = 'bdGHkNTYZ'
 
 c_to_s = {
     'D': (('@memoized\ndef ', ':'), 1),
-    'E': (('else:', ), 0),
-    'F': (('for ', ' in ', ':'), 2),
+    'F': (('for ', ' in num_to_range(', '):'), 2),
     'I': (('if ', ':'), 1),
     'W': (('while ', ':'), 1),
     '#': (('while True:\n try:', '\n except Exception:\n  break'), 0, 1),
+    '.V': (('for b in infinite_iterator(', '):'), 1),
+    '.?': (('else:', ), 0),
     }
-
-
-# memoizes function calls, key = repr of input.
-class memoized(object):
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-
-    def __call__(self, *args):
-        args_repr = repr(args)
-        if args_repr in self.cache:
-            return self.cache[args_repr]
-        else:
-            value = self.func(*args)
-            self.cache[args_repr] = value
-            return value
-
 
 # Arbitrary format operators - use for assignment, infix, etc.
 # All surrounding strings, arity
 c_to_i = {
-    '~':  (('', '+=', ''), 2),
-    '=':  (('', '=copy(', ')'), 2),
-    '&':  (('(', ' and ', ')'), 2),
-    '|':  (('(', ' or ', ')'), 2),
-    ']':  (('[', ']'), 1),
-    '}':  (('(', ' in ', ')'), 2),
-    '?':  (('(', ' if ', ' else ', ')'), 3),
-    ',':  (('(', ',', ')'), 2),
-    'B':  (('break', ), 0),
-    'J':  (('J=copy(', ')'), 1),
-    'K':  (('K=', ''), 1),
-    'R':  (('return ', ''), 1),
-    'Q':  (('Q=copy(', ')'), 1),
-    'z':  (('z=copy(', ')'), 1),
-    '.*': (('*(', ')'), 1),
-    '.u': (('*(', ')'), 1),
-    '.)': (('', '.pop()'), 1),
-    '.(': (('', '.pop(', ')'), 2),
+    '=':  ('assign(\'{0}\',{1})', 2),
+    '~':  ('post_assign(\'{0}\',{1})', 2),
+    '&':  ('({0} and {1})', 2),
+    '|':  ('({0} or {1})', 2),
+    ']':  ('[{0}]', 1),
+    '?':  ('({1} if {0} else {2})', 3),
+    ',':  ('[{0},{1}]', 2),
+    'B':  ('break', 0),
+    'J':  ('assign("J",{0})', 1),
+    'K':  ('assign("K",{0})', 1),
+    'R':  ('return {0}', 1),
+    '.W': ('apply_while(lambda H:{0}, lambda Z:{1}, {2})', 3),
+    '.x': ('Pexcept(lambda:{0}, lambda:{1})', 2),
+    '.*': ('*({0})', 1),
+    '.)': ('{0}.pop()', 1),
+    '.(': ('{0}.pop({1})', 2),
     }
 
 # Simple functions only.
@@ -80,59 +63,65 @@ c_to_f = {
     '_': ('neg', 1),
     '+': ('plus', 2),
     '[': ('Plist', -1),
-    '{': ('Pset', 1),
+    '{': ('uniquify', 1),
+    '}': ('Pin', 2),
     "'": ('read_file', 1),
     ':': ('at_slice', 3),
     '<': ('lt', 2),
     '>': ('gt', 2),
     '/': ('div', 2),
     ' ': ('', 1),
-    '\n': ('', 1),
+    '\n': ('imp_print', 1),
     'a': ('append', 2),
     'C': ('Pchr', 1),
     'c': ('chop', 2),
+    'E': ('eval_input', 0),
     'e': ('end', 1),
-    'f': ('Pfilter(lambda T:', 2),
+    'f': ('Pfilter', 2),
     'g': ('gte', 2),
     'h': ('head', 1),
     'i': ('base_10', 2),
     'j': ('join', 2),
     'l': ('Plen', 1),
-    'm': ('Pmap(lambda d:', 2),
+    'm': ('Pmap', 2),
     'n': ('ne', 2),
     'O': ('rchoice', 1),
-    'o': ('order(lambda N:', 2),
-    'P': ('primes_upper', 1),
-    'p': ('Pprint', 2),
+    'o': ('order', 2),
+    'P': ('primes_pop', 1),
+    'p': ('Pprint', 1),
     'q': ('equal', 2),
     'r': ('Prange', 2),
     'S': ('Psorted', 1),
     's': ('Psum', 1),
     't': ('tail', 1),
     'U': ('urange', 1),
-    'u': ('reduce(lambda G, H:', 3),
+    'u': ('reduce', 3),
     'v': ('eval', 1),
     'w': ('input', 0),
     'X': ('assign_at', 3),
     'x': ('index', 2),
     'y': ('subsets', 1),
     '.A': ('all', 1),
-    '.a': ('abs', 1),
+    '.a': ('Pabs', 1),
     '.B': ('Pbin', 1),
+    '.b': ('binary_map', 3),
     '.c': ('combinations', 2),
     '.C': ('combinations_with_replacement', 2),
-    '.d': ('dict', 1),
-    '.D': ('divmod', 2),
+    '.d': ('dict_or_date', 1),
+    '.D': ('divmod_or_delete', 2),
     '.E': ('any', 1),
-    '.e': ('Penumerate(lambda k, Y:', 2),
-    '.f': ('float', 1),
+    '.e': ('Penumerate', 2),
+    '.f': ('first_n', 3),
     '.F': ('Pformat', 2),
+    '.g': ('group_by', 2),
     '.H': ('Phex', 1),
     '.h': ('Phash', 1),
+    '.i': ('interleave', 2),
+    '.I': ('invert', 2),
     '.j': ('Pcomplex', 2),
     '.l': ('log', 2),
-    '.m': ('minimal(lambda b:', 2),
-    '.M': ('maximal(lambda Z:', 2),
+    '.m': ('minimal', 2),
+    '.M': ('maximal', 2),
     '.n': ('Pnumbers', 1),
     '.O': ('Poct', 1),
     '.p': ('permutations', 1),
@@ -140,67 +129,70 @@ c_to_f = {
     '.q': ('Pexit', 0),
     '.Q': ('eval_all_input', 0),
     '.r': ('rotate', 2),
-    '.R': ('round', 2),
+    '.R': ('Pround', 2),
     '.S': ('shuffle', 1),
-    '.s': ('stripchars', 2),
+    '.s': ('Pstrip', 2),
     '.t': ('trig', 2),
+    '.T': ('transpose', 1),
+    '.U': ('reduce2', 2),
+    '.u': ('cu_reduce', 3),
+    '.v': ('pyth_eval', 1),
     '.w': ('Pwrite', 2),
-    '.x': ('product', 1),
     '.z': ('all_input', 0),
+    '.Z': ('compress', 1),
+    '."': ('packed_str', 1),
     '.^': ('pow', 3),
     '.&': ('bitand', 2),
     '.|': ('bitor', 2),
     '.<': ('leftshift', 2),
     '.>': ('rightshift', 2),
+    './': ('partition', 1),
     '._': ('sign', 1),
     '.-': ('remove', 2),
     '.:': ('substrings', 2),
+    '.{': ('Pset', 1),
+    '.!': ('factorial', 1),
+    '.[': ('pad', 3),
     }
 
 replacements = {
-    '\\': ('"{0}"', 1),
-    'V': ('FNU', 0),
-    'A': ('=,{0}{1}', 2),
-    'L': ('DybR', 0),
-    'M': ('DgGHR', 0),
-    '.N': ('D:NTYR', 0),
+    '\\': [('"{0}"', 1),],
+    'V': ['FN','FH','Fb',],
+    'A': ['=,GH',],
+    'L': ['DybR',"D'bR",],
+    'M': ['DgGHR', 'DnGHR',],
+    '.N': ['D:NTYR','DXNTYR',],
     }
 
-#Provides parsing functions and arity conditions for syntactical sugar
-#<non-zero>=: Augmented assignment
-#<binary>F: Fold operator
+rotate_back_replacements = ('V',)
 
-syntax_sugar = {
-    '=': (lambda c, r: r[:2] + c+r[1:], lambda n: n),
-    'F': (lambda c, r: "u" + c + c_to_f['u'][0][14:18:3] + ".n4 "+r[1:],
-          lambda n: n == 2)
-}
 
 # Gives next function header to use - for filter, map, reduce.
-# map: d, k, b
-# filter: T, Y, Z
-# order: N, Z,
-# reduce: (G,H), (N,T)
-# enumerate: (k, Y), (b, Z)
 
-next_c_to_f = {
-    'f': [('Pfilter(lambda Y:', 2), ('Pfilter(lambda Z:', 2), ],
-    'm': [('Pmap(lambda k:', 2), ('Pmap(lambda b:', 2), ],
-    'o': [('order(lambda Z:', 2), ],
-    'u': [('reduce(lambda N, T:', 3), ],
-    '.e': [('Penumerate(lambda b, Z:', 2), ],
+lambda_vars = {
+    'f': ['T', 'Y', 'Z'],
+    'm': ['d', 'k', 'b'],
+    'o': ['N', 'Z'],
+    'u': ['G, H', 'N, T'],
+    '.b': ['N, Y'],
+    '.e': ['k, b', 'Y, Z'],
+    '.f': ['Z'],
+    '.g': ['k'],
+    '.I': ['G'],
+    '.m': ['b'],
+    '.M': ['Z'],
+    '.u': ['N, Y'],
+    '.U': ['b, Z', 'k, Y'],
     }
 
 # For autoinitializers. One shot, not rotating.
 next_c_to_i = {
     'J': (('J'), 0),
     'K': (('K'), 0),
-    'Q': (('Q'), 0),
-    'z': (('z'), 0),
     }
 
 # Prependers.
 prepend = {
-    'Q': "Qvw",
-    'z': "zw",
+    'Q': "=Qvw",
+    'z': "=zw",
     }
